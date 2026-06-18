@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-soil-600 font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display text-leaf-900;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-leaf-400/50;
+  }
+  .btn-primary {
+    @apply btn bg-leaf-700 text-white hover:bg-leaf-800 shadow-soft hover:-translate-y-0.5;
+  }
+  .btn-outline {
+    @apply btn border-2 border-leaf-700 text-leaf-700 hover:bg-leaf-700 hover:text-white;
+  }
+  .btn-ghost {
+    @apply btn text-leaf-800 hover:bg-leaf-50;
+  }
+  .card {
+    @apply rounded-3xl bg-white shadow-card;
+  }
+  .container-koobo {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-leaf-50 px-4 py-1.5 text-sm font-semibold text-leaf-700;
+  }
+  .prose-koobo {
+    @apply leading-relaxed;
+  }
+  .prose-koobo p { @apply mb-2; }
+  .prose-koobo ul { @apply list-disc pl-5 mb-2; }
+  .prose-koobo ol { @apply list-decimal pl-5 mb-2; }
+  .prose-koobo strong { @apply font-semibold text-leaf-800; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #bcdca3; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }

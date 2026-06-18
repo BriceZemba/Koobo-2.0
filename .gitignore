@@ -1,0 +1,36 @@
+# Secrets NE JAMAIS committer
+.env
+Koobo/.env
+*.env
+!*.env.example
+
+# Environnements virtuels Python
+/venv
+.venv/
+**/.venv/
+**/.venv312/
+Koobo/.venv/
+Koobo/.venv312/
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Sessions Flask
+Koobo/flask_session/
+
+# Logs runtime
+Koobo/server.log
+*.log
+
+# Frontend React/Vite
+web/node_modules/
+web/dist/
+web/.vite/
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

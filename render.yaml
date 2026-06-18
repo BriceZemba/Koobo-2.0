@@ -1,0 +1,24 @@
+# Déploiement du backend KOOBO (API Flask) sur Render.
+# Render → New + → Blueprint → sélectionner le dépôt → renseigner les clés.
+services:
+  - type: web
+    name: koobo-api
+    runtime: python
+    rootDir: Koobo
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180
+    healthCheckPath: /api/health
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: WEATHER_API_KEY
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false   # mettez l'URL Vercel du frontend, ex. https://koobo.vercel.app
+      - key: PYTHON_VERSION
+        value: "3.12.4"

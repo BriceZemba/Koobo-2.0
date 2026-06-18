@@ -1,0 +1,15 @@
+{
+  "name": "KOOBO Assistant Agricole IA",
+  "short_name": "KOOBO",
+  "description": "Conseil agronomique vocal et multilingue, détection de maladies et recommandation de cultures.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#36490d",
+  "theme_color": "#2e7d32",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
