@@ -126,13 +126,17 @@ export default function Detection() {
           setResult(r);
           setLiveStatus("Dernière analyse : " + new Date().toLocaleTimeString("fr-FR"));
         } catch (e: any) {
-          setLiveStatus("Erreur : " + (e.message || "analyse"));
+          // En cas d'erreur (quota saturé, etc.) on arrête la boucle pour ne pas
+          // consommer le quota inutilement.
+          setLiveStatus("⚠️ " + (e.message || "analyse interrompue"));
+          stopLive();
         }
       }
       busy.current = false;
     };
     tick();
-    liveTimer.current = window.setInterval(tick, 5000);
+    // 20 s entre deux analyses : la vision en continu consomme vite le quota gratuit.
+    liveTimer.current = window.setInterval(tick, 20000);
   }
   function stopLive() {
     setLive(false);

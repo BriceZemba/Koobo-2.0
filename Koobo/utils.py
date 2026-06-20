@@ -8,40 +8,56 @@ from dotenv import load_dotenv
 load_dotenv()
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ---------------------------------------------------------------------------
-# Modèles (OpenRouter) et embeddings (fastembed, locales, sans clé).
-# Modifiables via variables d'environnement.
+# Fournisseurs LLM. Par défaut : GROQ en principal (tier gratuit généreux) +
+# OpenRouter en secours. Tout est servi via l'API compatible OpenAI.
+#   - Groq      : très généreux, rapide ; modèles llama 3.3 / llama-4 (vision)
+#   - OpenRouter: secours (quota gratuit ~50/jour)
+# Embeddings : fastembed (locales, sans clé).
 # ---------------------------------------------------------------------------
+GROQ_BASE = "https://api.groq.com/openai/v1"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-# Modèle principal (gratuit, multilingue ET multimodal) + secours automatiques.
-# Les modèles gratuits sont parfois saturés (429) : on bascule sur le suivant.
-CHAT_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
-CHAT_FALLBACKS = ["qwen/qwen3-next-80b-a3b-instruct:free",
-                  "meta-llama/llama-3.3-70b-instruct:free",
-                  "google/gemma-4-26b-a4b-it:free"]
-VISION_MODEL = os.getenv("OPENROUTER_VISION_MODEL", "google/gemma-4-31b-it:free")
-VISION_FALLBACKS = ["nvidia/nemotron-nano-12b-v2-vl:free", "google/gemma-4-26b-a4b-it:free"]
-EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 
+GROQ_CHAT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+OR_CHAT_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+OR_VISION_MODEL = os.getenv("OPENROUTER_VISION_MODEL", "google/gemma-4-31b-it:free")
+
+EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 _OR_HEADERS = {"HTTP-Referer": "https://koobo.ai", "X-Title": "KOOBO"}
 
 
-def _make_llm(model, temperature, timeout):
+def _groq_llm(model, temperature, timeout):
     from langchain_openai import ChatOpenAI
-    return ChatOpenAI(model=model, temperature=temperature,
-                      api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE,
-                      default_headers=_OR_HEADERS, timeout=timeout, max_retries=1)
+    return ChatOpenAI(model=model, temperature=temperature, api_key=GROQ_API_KEY,
+                      base_url=GROQ_BASE, timeout=timeout, max_retries=1)
+
+
+def _or_llm(model, temperature, timeout):
+    from langchain_openai import ChatOpenAI
+    return ChatOpenAI(model=model, temperature=temperature, api_key=OPENROUTER_API_KEY,
+                      base_url=OPENROUTER_BASE, default_headers=_OR_HEADERS, timeout=timeout, max_retries=1)
+
+
+def _with_fallback(primary, fallbacks):
+    return primary.with_fallbacks(fallbacks) if fallbacks else primary
 
 
 def get_chat_llm(temperature=0.2):
-    primary = _make_llm(CHAT_MODEL, temperature, 60)
-    return primary.with_fallbacks([_make_llm(m, temperature, 60) for m in CHAT_FALLBACKS])
+    """Groq en principal, OpenRouter en secours (si clé dispo)."""
+    if GROQ_API_KEY:
+        fb = [_or_llm(OR_CHAT_MODEL, temperature, 60)] if OPENROUTER_API_KEY else []
+        return _with_fallback(_groq_llm(GROQ_CHAT_MODEL, temperature, 60), fb)
+    return _or_llm(OR_CHAT_MODEL, temperature, 60)
 
 
 def get_vision_llm(temperature=0.2):
-    primary = _make_llm(VISION_MODEL, temperature, 90)
-    return primary.with_fallbacks([_make_llm(m, temperature, 90) for m in VISION_FALLBACKS])
+    if GROQ_API_KEY:
+        fb = [_or_llm(OR_VISION_MODEL, temperature, 90)] if OPENROUTER_API_KEY else []
+        return _with_fallback(_groq_llm(GROQ_VISION_MODEL, temperature, 90), fb)
+    return _or_llm(OR_VISION_MODEL, temperature, 90)
 
 
 _EMBEDDINGS = None
@@ -227,6 +243,18 @@ def get_qa_prompt(language_name="français"):
 
 # Prompt par défaut (français) conservé pour compatibilité.
 qa_prompt = get_qa_prompt("français")
+
+
+def get_plain_system(language_name="français"):
+    """Système pour le chat SANS base documentaire (mode dégradé / fallback)."""
+    return (
+        "Ton nom est Koobo, qui signifie « agriculture » en langue mooré. "
+        "Tu es un assistant agricole au Burkina Faso et en Afrique de l'Ouest, "
+        "expert en agriculture et en agronomie, qui aide les agriculteurs. "
+        "Réponds de façon claire, détaillée et structurée, avec quelques emojis. "
+        f"TRÈS IMPORTANT : réponds UNIQUEMENT en {language_name}, en langage simple "
+        "et concret adapté à un agriculteur."
+    )
 
 contextualize_q_system_prompt = (
     "Given a chat history and the latest user question "

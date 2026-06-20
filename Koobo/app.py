@@ -11,16 +11,15 @@ Lancement : python app.py  →  http://localhost:5000
 """
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
-from langchain_chroma import Chroma
-from langchain.chains import create_retrieval_chain, create_history_aware_retriever
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from PIL import Image
 import os, pickle, json, tempfile
 from dotenv import load_dotenv
 import numpy as np
 import utils
+# NB : langchain_chroma / chromadb (lourds) sont importés paresseusement dans
+# _ensure_rag() pour que le site démarre même s'ils sont lents/absents.
 
 load_dotenv()
 if os.getenv("LANGCHAIN_API_KEY"):
@@ -44,50 +43,75 @@ _cors_origins = os.getenv("CORS_ORIGINS", "*")
 CORS(app, resources={r"/*": {"origins": _cors_origins.split(",") if _cors_origins != "*" else "*"}}, supports_credentials=True)
 
 # ---------------------------------------------------------------------------
-# Initialisation UNIQUE des composants lourds au démarrage.
-#   LLM + vision : OpenRouter (via langchain-openai)
-#   Embeddings   : fastembed (locales, sans clé)
-#   Vector store : Chroma (langchain-chroma)
+# Initialisation PARESSEUSE des composants lourds (au 1er besoin).
+# → Passenger/cPanel démarre vite ; le site, la météo et les cultures
+#   fonctionnent même si embeddings/chromadb sont lents ou absents.
 # ---------------------------------------------------------------------------
-print("⏳ Initialisation de KOOBO ...")
-EMBEDDINGS = utils.get_embeddings()
-VECTOR_STORE = Chroma(persist_directory=STORE_DIR, embedding_function=EMBEDDINGS)
-RETRIEVER = VECTOR_STORE.as_retriever(search_kwargs={"k": 4})
-CHAT_LLM = utils.get_chat_llm(temperature=0)
-
-CONTEXTUALIZE_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", utils.contextualize_q_system_prompt),
-    MessagesPlaceholder("chat_history"),
-    ("human", "{input}"),
-])
-HISTORY_AWARE_RETRIEVER = create_history_aware_retriever(CHAT_LLM, RETRIEVER, CONTEXTUALIZE_PROMPT)
-
-# Une chaîne RAG par langue, construite à la demande puis mise en cache.
+_RAG = {"store": None, "retriever": None, "chat_llm": None, "har": None}
 _RAG_CHAINS = {}
+_RAG_LOADED = False
+from langchain.chains import create_retrieval_chain, create_history_aware_retriever
+from langchain.chains.combine_documents import create_stuff_documents_chain
+
+
+def _ensure_rag():
+    """Charge (une seule fois) embeddings + base vectorielle + LLM. Peut lever."""
+    global _RAG_LOADED
+    if not _RAG_LOADED:
+        from langchain_chroma import Chroma  # import lourd différé (chromadb)
+        embeddings = utils.get_embeddings()
+        _RAG["store"] = Chroma(persist_directory=STORE_DIR, embedding_function=embeddings)
+        _RAG["retriever"] = _RAG["store"].as_retriever(search_kwargs={"k": 4})
+        _RAG["chat_llm"] = utils.get_chat_llm(temperature=0)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", utils.contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ])
+        _RAG["har"] = create_history_aware_retriever(_RAG["chat_llm"], _RAG["retriever"], prompt)
+        _RAG_LOADED = True
+    return _RAG
+
+
+def get_store():
+    return _ensure_rag()["store"]
 
 
 def get_rag_chain(lang_code):
+    rag = _ensure_rag()
     if lang_code not in _RAG_CHAINS:
         language_name = utils.get_language_name(lang_code)
         qa_prompt = utils.get_qa_prompt(language_name)
-        question_answer_chain = create_stuff_documents_chain(CHAT_LLM, qa_prompt)
-        _RAG_CHAINS[lang_code] = create_retrieval_chain(HISTORY_AWARE_RETRIEVER, question_answer_chain)
+        question_answer_chain = create_stuff_documents_chain(rag["chat_llm"], qa_prompt)
+        _RAG_CHAINS[lang_code] = create_retrieval_chain(rag["har"], question_answer_chain)
     return _RAG_CHAINS[lang_code]
 
 
-# Modèle de recommandation de cultures (Random Forest pré-entraîné).
+# Modèle de recommandation de cultures (léger) — chemin absolu.
+_MODEL_PATH = os.path.join(os.path.dirname(__file__), "rf_model.pkl")
 try:
-    CROP_MODEL = pickle.load(open("rf_model.pkl", "rb"))
+    CROP_MODEL = pickle.load(open(_MODEL_PATH, "rb"))
 except Exception as e:
-    print(f"⚠️  rf_model.pkl introuvable ou illisible : {e}")
+    print(f"rf_model.pkl: {e}")
     CROP_MODEL = None
 
-print("✅ KOOBO prêt.")
+print("✅ KOOBO prêt (init paresseuse de l'IA).")
 
 
 # ===========================================================================
 # CHATBOT RAG (multilingue)
 # ===========================================================================
+def _ai_error(e):
+    """Transforme une exception LLM en message clair + code HTTP."""
+    msg = str(e).lower()
+    if "429" in msg or "rate" in msg or "quota" in msg or "free-models-per-day" in msg:
+        return ("Service IA momentanément saturé (quota gratuit OpenRouter atteint pour aujourd'hui). "
+                "Réessayez plus tard, ou ajoutez des crédits sur openrouter.ai."), 503
+    if "401" in msg or "auth" in msg or "api key" in msg:
+        return ("Clé OpenRouter manquante ou invalide. Vérifiez OPENROUTER_API_KEY.", 503)
+    return ("Service IA temporairement indisponible. Réessayez plus tard.", 503)
+
+
 @app.route('/get_chat_response', methods=['POST'])
 def get_chat_response():
     query = request.form.get('query')
@@ -95,23 +119,30 @@ def get_chat_response():
     if not query:
         return jsonify({"error": "Empty query"}), 400
 
-    rag_chain = get_rag_chain(lang_code)
-
     if 'chat_history' not in session:
         session['chat_history'] = []
     chat_history = [utils.deserialize_message(m) for m in session['chat_history']]
 
-    response = rag_chain.invoke({"input": query, "chat_history": chat_history})
+    answer = None
+    # 1) On tente le RAG (réponses enrichies par les documents).
+    try:
+        rag_chain = get_rag_chain(lang_code)
+        answer = rag_chain.invoke({"input": query, "chat_history": chat_history})["answer"]
+    except Exception as e:
+        print(f"RAG indisponible, repli LLM direct : {e}")
+        # 2) Repli SANS base documentaire : le chatbot répond quand même (Groq).
+        try:
+            llm = utils.get_chat_llm(temperature=0.3)
+            sys_msg = SystemMessage(content=utils.get_plain_system(utils.get_language_name(lang_code)))
+            answer = llm.invoke([sys_msg, *chat_history, HumanMessage(content=query)]).content
+        except Exception as e2:
+            print(f"Chat error: {e2}")
+            emsg, code = _ai_error(e2)
+            return jsonify({"error": emsg}), code
 
-    chat_history.extend([
-        HumanMessage(content=query),
-        AIMessage(content=response["answer"]),
-    ])
+    chat_history.extend([HumanMessage(content=query), AIMessage(content=answer)])
     session['chat_history'] = [utils.serialize_message(m) for m in chat_history]
-
-    if "answer" in response:
-        return jsonify({"answer": response["answer"]})
-    return jsonify({"error": "No answer found in the response"}), 500
+    return jsonify({"answer": answer})
 
 
 @app.route('/reset_chat', methods=['POST'])
@@ -183,7 +214,12 @@ def get_detect_response():
         {"type": "text", "text": utils.disease_detection_prompt(language_name)},
         {"type": "image_url", "image_url": {"url": image_b64}},
     ])
-    raw = llm.invoke([message]).content
+    try:
+        raw = llm.invoke([message]).content
+    except Exception as e:
+        print(f"Vision error: {e}")
+        emsg, code = _ai_error(e)
+        return jsonify({"error": emsg}), code
 
     try:
         data = _parse_json_block(raw)
@@ -222,7 +258,12 @@ def get_detect_chat():
         {"type": "text", "text": f"{query}\n\n(Réponds en {language_name}, de façon claire et pratique pour un agriculteur.)"},
         {"type": "image_url", "image_url": {"url": image_b64}},
     ])
-    result = llm.invoke([message])
+    try:
+        result = llm.invoke([message])
+    except Exception as e:
+        print(f"Vision chat error: {e}")
+        emsg, code = _ai_error(e)
+        return jsonify({"error": emsg}), code
     return jsonify({"result": result.content})
 
 
@@ -365,7 +406,7 @@ def api_ingest():
         try:
             chunks = splitter.split_documents(_load_document(tmp_path, f.filename))
             if chunks:
-                VECTOR_STORE.add_documents(chunks)
+                get_store().add_documents(chunks)
                 total += len(chunks)
                 ingested.append({"name": f.filename, "chunks": len(chunks)})
         except Exception as e:
@@ -382,7 +423,7 @@ def api_ingest():
 def api_documents():
     """Liste les documents présents dans la base (regroupés par source)."""
     try:
-        data = VECTOR_STORE.get(include=["metadatas"])
+        data = get_store().get(include=["metadatas"])
         counts = {}
         for m in data.get("metadatas", []) or []:
             s = (m or {}).get("source")
@@ -399,11 +440,11 @@ def api_documents_delete():
     source = request.args.get("source")
     try:
         if source:
-            ids = VECTOR_STORE.get(where={"source": source}).get("ids", [])
+            ids = get_store().get(where={"source": source}).get("ids", [])
         else:
-            ids = VECTOR_STORE.get().get("ids", [])
+            ids = get_store().get().get("ids", [])
         if ids:
-            VECTOR_STORE.delete(ids=ids)
+            get_store().delete(ids=ids)
         return jsonify({"status": "ok", "deleted": len(ids)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
