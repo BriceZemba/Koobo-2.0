@@ -22,9 +22,10 @@ import utils
 # _ensure_rag() pour que le site démarre même s'ils sont lents/absents.
 
 load_dotenv()
-if os.getenv("LANGCHAIN_API_KEY"):
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
+# Traçage LangSmith désactivé par défaut (évite les erreurs 403 et la latence).
+# Pour l'activer : LANGCHAIN_TRACING_V2=true + une clé LANGCHAIN_API_KEY valide.
+if os.getenv("LANGCHAIN_TRACING_V2", "").lower() != "true":
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "koobo-dev-secret")
 

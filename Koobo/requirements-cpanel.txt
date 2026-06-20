@@ -1,0 +1,33 @@
+# KOOBO — dépendances ALLÉGÉES pour hébergement mutualisé (cPanel / o2switch).
+# Sans chromadb / fastembed / onnxruntime (qui nécessitent compilation et beaucoup
+# de RAM). Le chatbot répond via Groq (repli sans RAG), la vision, les cultures,
+# la météo et la voix fonctionnent normalement. Le RAG documentaire est désactivé.
+#
+# Installer avec :  pip install -r requirements-cpanel.txt
+flask==3.0.3
+flask-cors==4.0.1
+python-dotenv==1.0.1
+requests==2.32.3
+gunicorn==22.0.0
+
+# LangChain (léger) + Groq/OpenRouter via API compatible OpenAI
+langchain==0.2.16
+langchain-core==0.2.41
+langchain-community==0.2.17
+langchain-text-splitters==0.2.4
+langchain-openai==0.1.25
+openai==1.54.0
+
+# Voix (Groq Whisper)
+groq==0.11.0
+httpx==0.27.2
+
+# Recommandation de cultures
+scikit-learn==1.5.0
+numpy==1.26.4
+pandas==2.2.2
+
+# Images / documents
+pillow==10.4.0
+pypdf==5.1.0
+docx2txt==0.8
