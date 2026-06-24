@@ -32,7 +32,7 @@ export default function Footer() {
         <div>
           <h4 className="mb-4 font-semibold text-white">{t.footer.contact}</h4>
           <ul className="space-y-3 text-sm">
-            <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-lime-400" /> contact@koobo.ai</li>
+            <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-lime-400" /> bricezemba336@gmail.com</li>
             <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-lime-400" /> Ouagadougou, Burkina Faso</li>
           </ul>
         </div>

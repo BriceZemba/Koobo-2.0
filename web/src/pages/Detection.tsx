@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { marked } from "marked";
 import {
   UploadCloud, Loader2, Stethoscope, Bug, ShieldCheck, FlaskConical, Send, X, Leaf,
-  Camera, Video, ImageIcon, CircleStop, Play,
+  Camera, Video, ImageIcon, CircleStop, Play, WifiOff,
 } from "lucide-react";
 import { detectDisease, askAboutImage } from "../lib/api";
 import type { DiseaseResult } from "../lib/api";
+import { isModelAvailable, predictOffline } from "../lib/offline";
+import type { OfflineResult } from "../lib/offline";
 import { useLang } from "../context/LanguageContext";
 import { useUi } from "../context/UiLangContext";
 import LanguageSelect from "../components/LanguageSelect";
 
-type Mode = "upload" | "camera" | "video";
+type Mode = "upload" | "camera" | "video" | "offline";
 
 export default function Detection() {
   const { lang } = useLang();
@@ -34,6 +36,35 @@ export default function Detection() {
   const [liveStatus, setLiveStatus] = useState<string>("");
   const liveTimer = useRef<number | null>(null);
   const busy = useRef(false);
+
+  // ---- détection hors-ligne (TF.js) ----
+  const [offAvailable, setOffAvailable] = useState<boolean | null>(null);
+  const [offPreview, setOffPreview] = useState("");
+  const [offResult, setOffResult] = useState<OfflineResult | null>(null);
+  const [offLoading, setOffLoading] = useState(false);
+  const offInputRef = useRef<HTMLInputElement>(null);
+  const offImgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (mode === "offline" && offAvailable === null) isModelAvailable().then(setOffAvailable);
+  }, [mode, offAvailable]);
+
+  function chooseOffline(f: File | undefined) {
+    if (!f || !f.type.startsWith("image/")) return;
+    setOffPreview(URL.createObjectURL(f));
+    setOffResult(null);
+  }
+  async function runOffline() {
+    if (!offImgRef.current) return;
+    setOffLoading(true);
+    try {
+      setOffResult(await predictOffline(offImgRef.current));
+    } catch (e: any) {
+      setError(e.message || "Erreur");
+    } finally {
+      setOffLoading(false);
+    }
+  }
 
   // ---- gestion du flux caméra ----
   async function startCam() {
@@ -172,6 +203,7 @@ export default function Detection() {
     { id: "upload", label: t.detection.tabUpload, icon: ImageIcon },
     { id: "camera", label: t.detection.tabCamera, icon: Camera },
     { id: "video", label: t.detection.tabVideo, icon: Video },
+    { id: "offline", label: t.detection.tabOffline, icon: WifiOff },
   ];
 
   return (
@@ -291,12 +323,67 @@ export default function Detection() {
                 )}
               </>
             )}
-            {error && mode === "upload" && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
+
+            {mode === "offline" && (
+              <>
+                {offAvailable === false ? (
+                  <div className="flex min-h-[340px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-amber-300 bg-amber-50 p-6 text-center text-amber-800">
+                    <WifiOff className="h-10 w-10" />
+                    <p className="mt-3 text-sm">{t.detection.offlineMissing}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      onClick={() => offInputRef.current?.click()}
+                      className="group flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-leaf-200 bg-leaf-50/40 p-6 text-center transition-colors hover:border-leaf-400 hover:bg-leaf-50"
+                    >
+                      {offPreview ? (
+                        <img ref={offImgRef} src={offPreview} crossOrigin="anonymous" alt="" className="max-h-64 rounded-2xl object-contain shadow-card" />
+                      ) : (
+                        <>
+                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-leaf-100"><WifiOff className="h-8 w-8 text-leaf-600" /></div>
+                          <p className="mt-4 font-semibold text-leaf-800">{t.detection.drop}</p>
+                          <p className="text-sm text-soil-400">{t.detection.offlineInfo}</p>
+                        </>
+                      )}
+                      <input ref={offInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => chooseOffline(e.target.files?.[0])} />
+                    </div>
+                    <button onClick={runOffline} disabled={!offPreview || offLoading} className="btn-primary mt-5 w-full disabled:opacity-40">
+                      {offLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <WifiOff className="h-5 w-5" />}
+                      {offLoading ? t.detection.offlineLoading : t.detection.offlineRun}
+                    </button>
+                    <p className="mt-2 text-center text-xs text-soil-400">{t.detection.offlineInfo}</p>
+                  </>
+                )}
+              </>
+            )}
+            {error && (mode === "upload" || mode === "offline") && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
           </div>
 
           {/* Colonne droite : résultats */}
           <div className="space-y-4">
-            {!result && !loading && (
+            {mode === "offline" && (
+              offResult ? (
+                <div className="rounded-2xl border border-leaf-100 bg-white p-6 shadow-card">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-leaf-100 text-leaf-700"><Stethoscope className="h-5 w-5" /></span>
+                    <h3 className="font-bold text-leaf-800">{t.detection.cName}</h3>
+                  </div>
+                  <p className="mt-3 text-lg font-semibold text-leaf-900">{offResult.label}</p>
+                  <div className="mt-3">
+                    <div className="mb-1 flex justify-between text-xs text-soil-500"><span>{t.detection.confidence}</span><span>{Math.round(offResult.confidence * 100)}%</span></div>
+                    <div className="h-2 w-full rounded-full bg-leaf-100"><div className="h-2 rounded-full bg-leaf-600" style={{ width: `${Math.round(offResult.confidence * 100)}%` }} /></div>
+                  </div>
+                  <p className="mt-4 text-xs text-soil-400">{t.detection.offlineInfo}</p>
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[340px] flex-col items-center justify-center rounded-3xl border border-leaf-100 bg-leaf-50/30 p-8 text-center text-soil-400">
+                  <WifiOff className="h-12 w-12 text-leaf-200" />
+                  <p className="mt-3">{t.detection.here}</p>
+                </div>
+              )
+            )}
+            {mode !== "offline" && !result && !loading && (
               <div className="flex h-full min-h-[340px] flex-col items-center justify-center rounded-3xl border border-leaf-100 bg-leaf-50/30 p-8 text-center text-soil-400">
                 <Stethoscope className="h-12 w-12 text-leaf-200" />
                 <p className="mt-3">{t.detection.here}</p>

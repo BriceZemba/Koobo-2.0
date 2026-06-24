@@ -72,7 +72,10 @@ export const fr = {
   },
   detection: {
     tag: "Vision IA", title: "Détection de maladies", subtitle: "Importez une photo, prenez une image, ou analysez en direct via la caméra.",
-    tabUpload: "Importer", tabCamera: "Caméra", tabVideo: "Vidéo",
+    tabUpload: "Importer", tabCamera: "Caméra", tabVideo: "Vidéo", tabOffline: "Hors-ligne",
+    offlineInfo: "Analyse directement sur l'appareil, sans internet ni quota IA.",
+    offlineMissing: "Modèle hors-ligne non installé. Entraînez-le avec koobo_offline.ipynb puis placez-le dans web/public/model/.",
+    offlineRun: "Analyser hors-ligne", offlineLoading: "Chargement du modèle…", confidence: "Confiance",
     drop: "Glissez une image ici", dropSub: "ou cliquez pour choisir une photo (JPG, PNG)",
     diagnose: "Diagnostiquer", analyzing: "Analyse en cours…", here: "Le diagnostic apparaîtra ici.",
     capture: "Prendre la photo et analyser", startLive: "Démarrer l'analyse continue", stop: "Arrêter",
@@ -176,7 +179,10 @@ export const en: typeof fr = {
   },
   detection: {
     tag: "Vision AI", title: "Disease detection", subtitle: "Upload a photo, take a picture, or analyze live with the camera.",
-    tabUpload: "Upload", tabCamera: "Camera", tabVideo: "Video",
+    tabUpload: "Upload", tabCamera: "Camera", tabVideo: "Video", tabOffline: "Offline",
+    offlineInfo: "Runs directly on your device — no internet, no AI quota.",
+    offlineMissing: "Offline model not installed. Train it with koobo_offline.ipynb then place it in web/public/model/.",
+    offlineRun: "Analyze offline", offlineLoading: "Loading model…", confidence: "Confidence",
     drop: "Drop an image here", dropSub: "or click to choose a photo (JPG, PNG)",
     diagnose: "Diagnose", analyzing: "Analyzing…", here: "The diagnosis will appear here.",
     capture: "Take photo and analyze", startLive: "Start continuous analysis", stop: "Stop",
