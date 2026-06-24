@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import UiLangSelect from "./UiLangSelect";
 import { useUi } from "../context/UiLangContext";
 
@@ -16,6 +16,8 @@ export default function Navbar() {
     { to: "/detection", label: t.nav.detection },
     { to: "/crop", label: t.nav.crops },
     { to: "/meteo", label: t.nav.weather },
+    { to: "/calendrier", label: t.nav.calendrier },
+    { to: "/offre", label: t.nav.offre },
     { to: "/usage", label: t.nav.usage },
   ];
 
@@ -68,6 +70,11 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 lg:flex">
           <UiLangSelect light={onHero} />
+          <NavLink to="/profil" title={t.nav.profil}
+            className={({ isActive }) => `flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              isActive ? "bg-leaf-100 text-leaf-800" : onHero ? "bg-white/15 text-white hover:bg-white/25" : "bg-leaf-50 text-leaf-700 hover:bg-leaf-100"}`}>
+            <User className="h-5 w-5" />
+          </NavLink>
           <Link to="/chat" className="btn-primary px-5 py-2.5 text-sm">
             {t.nav.talk}
           </Link>
@@ -93,6 +100,9 @@ export default function Navbar() {
                 {l.label}
               </NavLink>
             ))}
+            <NavLink to="/profil" className={({ isActive }) => `flex items-center gap-2 rounded-xl px-4 py-3 font-semibold ${isActive ? "bg-leaf-100 text-leaf-800" : "text-soil-600"}`}>
+              <User className="h-5 w-5" /> {t.nav.profil}
+            </NavLink>
             <div className="mt-2 flex items-center justify-between px-2">
               <UiLangSelect />
               <Link to="/chat" className="btn-primary px-5 py-2.5 text-sm">

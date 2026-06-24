@@ -7,6 +7,7 @@ import { getWeather } from "../lib/api";
 import type { WeatherData } from "../lib/api";
 import CitySearch from "../components/CitySearch";
 import { useUi } from "../context/UiLangContext";
+import { getProfile } from "../lib/profile";
 
 const ALERT_ICONS: Record<string, any> = { rain: CloudRain, flood: Waves, sun: Sun, droplet: Droplet, check: CheckCircle2 };
 const ALERT_STYLE: Record<string, string> = {
@@ -17,8 +18,9 @@ const ALERT_STYLE: Record<string, string> = {
 
 export default function Meteo() {
   const { t } = useUi();
-  const [city, setCity] = useState("Ouagadougou");
-  const [query, setQuery] = useState("Ouagadougou");
+  const _defaultCity = getProfile().city || "Ouagadougou";
+  const [city, setCity] = useState(_defaultCity);
+  const [query, setQuery] = useState(_defaultCity);
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +40,7 @@ export default function Meteo() {
     }
   }
 
-  useEffect(() => { load("Ouagadougou"); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(_defaultCity); /* eslint-disable-next-line */ }, []);
 
   function dayName(date: string) {
     return new Date(date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });

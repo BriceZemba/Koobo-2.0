@@ -2,7 +2,7 @@
 // La langue de CONVERSATION du chat (incl. langues africaines) est gérée séparément.
 
 export const fr = {
-  nav: { home: "Accueil", assistant: "Assistant", detection: "Détection", crops: "Cultures", weather: "Météo", usage: "Utilisation", talk: "Parler à Koobo" },
+  nav: { home: "Accueil", assistant: "Assistant", detection: "Détection", crops: "Cultures", weather: "Météo", usage: "Utilisation", offre: "Offre", calendrier: "Calendrier", profil: "Mon profil", talk: "Parler à Koobo" },
   hero: {
     badge: "IA pour l'agriculture africaine",
     title: "Cultivez l'avenir avec",
@@ -106,7 +106,7 @@ export const fr = {
 };
 
 export const en: typeof fr = {
-  nav: { home: "Home", assistant: "Assistant", detection: "Detection", crops: "Crops", weather: "Weather", usage: "How to use", talk: "Talk to Koobo" },
+  nav: { home: "Home", assistant: "Assistant", detection: "Detection", crops: "Crops", weather: "Weather", usage: "How to use", offre: "Pricing", calendrier: "Calendar", profil: "My profile", talk: "Talk to Koobo" },
   hero: {
     badge: "AI for African agriculture",
     title: "Grow the future with",

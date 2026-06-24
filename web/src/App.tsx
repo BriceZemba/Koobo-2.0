@@ -9,6 +9,9 @@ import Detection from "./pages/Detection";
 import Crop from "./pages/Crop";
 import Meteo from "./pages/Meteo";
 import Usage from "./pages/Usage";
+import Offre from "./pages/Offre";
+import Calendrier from "./pages/Calendrier";
+import Profil from "./pages/Profil";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -20,7 +23,7 @@ export default function App() {
   const { pathname } = useLocation();
   // Footer affiché sur l'accueil et la météo (pages "contenu") ; masqué sur les
   // pages outil plein écran (chat, détection, cultures).
-  const showFooter = pathname === "/" || pathname === "/meteo" || pathname === "/usage";
+  const showFooter = ["/", "/meteo", "/usage", "/offre", "/calendrier", "/profil"].includes(pathname);
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
@@ -33,6 +36,9 @@ export default function App() {
           <Route path="/crop" element={<Crop />} />
           <Route path="/meteo" element={<Meteo />} />
           <Route path="/usage" element={<Usage />} />
+          <Route path="/offre" element={<Offre />} />
+          <Route path="/calendrier" element={<Calendrier />} />
+          <Route path="/profil" element={<Profil />} />
         </Routes>
       </main>
       {showFooter && <Footer />}

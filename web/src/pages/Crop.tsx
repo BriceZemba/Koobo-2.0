@@ -4,6 +4,7 @@ import { recommendCrop } from "../lib/api";
 import type { CropResult } from "../lib/api";
 import CitySearch from "../components/CitySearch";
 import { useUi } from "../context/UiLangContext";
+import { getProfile } from "../lib/profile";
 
 interface FormState {
   nitrogen: number;
@@ -15,8 +16,9 @@ interface FormState {
 
 export default function Crop() {
   const { t } = useUi();
-  const [form, setForm] = useState<FormState>({ nitrogen: 90, phosphorous: 42, potassium: 43, ph: 6.5, rainfall: 200 });
-  const [city, setCity] = useState("Ouagadougou");
+  const _p = getProfile();
+  const [form, setForm] = useState<FormState>({ nitrogen: _p.nitrogen, phosphorous: _p.phosphorous, potassium: _p.potassium, ph: _p.ph, rainfall: _p.rainfall });
+  const [city, setCity] = useState(_p.city || "Ouagadougou");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CropResult | null>(null);
   const [error, setError] = useState("");
