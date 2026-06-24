@@ -9,6 +9,16 @@ import { useLang } from "../context/LanguageContext";
 import { useUi } from "../context/UiLangContext";
 import LanguageSelect from "../components/LanguageSelect";
 import { hasSupabase } from "../lib/supabase";
+import { getProfile } from "../lib/profile";
+
+function profileNote(): string {
+  const p = getProfile();
+  const parts: string[] = [];
+  if (p.name) parts.push(`nom: ${p.name}`);
+  if (p.city) parts.push(`ville: ${p.city}`);
+  if (p.crops) parts.push(`cultures: ${p.crops}`);
+  return parts.join("; ");
+}
 import {
   listConversations, createConversation, loadMessages, saveMessage, deleteConversation,
 } from "../lib/conversations";
@@ -125,7 +135,7 @@ export default function Chat() {
         answer = r.result;
         clearImage();
       } else {
-        answer = (await sendChat(q, lang)).answer;
+        answer = (await sendChat(q, lang, profileNote())).answer;
       }
       setMessages((m) => [...m, { role: "bot", content: answer }]);
       saveMessage(convId, "bot", answer);

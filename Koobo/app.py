@@ -117,8 +117,13 @@ def _ai_error(e):
 def get_chat_response():
     query = request.form.get('query')
     lang_code = request.form.get('lang', 'fr')
+    profile = (request.form.get('profile') or '').strip()
     if not query:
         return jsonify({"error": "Empty query"}), 400
+
+    # Personnalisation : contexte du profil agriculteur (ville, cultures, sol).
+    note = f"[Contexte agriculteur — {profile}. Adapte tes conseils à ce contexte.]" if profile else ""
+    rag_input = f"{note}\n\n{query}" if note else query
 
     if 'chat_history' not in session:
         session['chat_history'] = []
@@ -128,13 +133,16 @@ def get_chat_response():
     # 1) On tente le RAG (réponses enrichies par les documents).
     try:
         rag_chain = get_rag_chain(lang_code)
-        answer = rag_chain.invoke({"input": query, "chat_history": chat_history})["answer"]
+        answer = rag_chain.invoke({"input": rag_input, "chat_history": chat_history})["answer"]
     except Exception as e:
         print(f"RAG indisponible, repli LLM direct : {e}")
         # 2) Repli SANS base documentaire : le chatbot répond quand même (Groq).
         try:
             llm = utils.get_chat_llm(temperature=0.3)
-            sys_msg = SystemMessage(content=utils.get_plain_system(utils.get_language_name(lang_code)))
+            system = utils.get_plain_system(utils.get_language_name(lang_code))
+            if note:
+                system += " " + note
+            sys_msg = SystemMessage(content=system)
             answer = llm.invoke([sys_msg, *chat_history, HumanMessage(content=query)]).content
         except Exception as e2:
             print(f"Chat error: {e2}")

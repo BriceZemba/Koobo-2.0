@@ -31,19 +31,29 @@ export default function Profil() {
 
   return (
     <div className="min-h-screen bg-white pt-[4.5rem]">
-      <div className="container-koobo max-w-3xl py-8 sm:py-10">
-        <div className="mb-7">
-          <span className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-lime-600">
-            <Leaf className="h-4 w-4" /> {tr("Personnalisation", "Personalization")}
-          </span>
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{tr("Mon profil agriculteur", "My farmer profile")}</h1>
-          <p className="mt-2 text-soil-400">
+      {/* En-tête dégradé */}
+      <section className="bg-gradient-to-br from-leaf-700 to-leaf-800 py-12 text-white">
+        <div className="container-koobo max-w-3xl">
+          <div className="flex items-center gap-4">
+            <span className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+              <User className="h-8 w-8 text-lime-300" />
+            </span>
+            <div>
+              <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-lime-300">
+                <Leaf className="h-4 w-4" /> {tr("Personnalisation", "Personalization")}
+              </span>
+              <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">{tr("Mon profil agriculteur", "My farmer profile")}</h1>
+            </div>
+          </div>
+          <p className="mt-4 max-w-2xl text-leaf-100">
             {tr("Enregistrez vos informations : Koobo pré-remplit vos formulaires et adapte ses conseils à votre exploitation.",
                 "Save your details: Koobo pre-fills your forms and tailors its advice to your farm.")}
           </p>
         </div>
+      </section>
 
-        <div className="rounded-3xl border border-leaf-100 bg-white p-6 shadow-card sm:p-7">
+      <div className="container-koobo max-w-3xl py-8 sm:py-10">
+        <div className="-mt-16 rounded-3xl border border-leaf-100 bg-white p-6 shadow-soft sm:p-7">
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-leaf-800"><User className="mr-1 inline h-4 w-4" /> {tr("Nom", "Name")}</label>

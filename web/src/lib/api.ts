@@ -35,10 +35,11 @@ async function postForm(path: string, form: FormData): Promise<any> {
   return res.json();
 }
 
-export function sendChat(query: string, lang: string): Promise<{ answer: string }> {
+export function sendChat(query: string, lang: string, profile = ""): Promise<{ answer: string }> {
   const fd = new FormData();
   fd.append("query", query);
   fd.append("lang", lang);
+  if (profile) fd.append("profile", profile);
   return postForm("/get_chat_response", fd);
 }
 
