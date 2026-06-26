@@ -12,6 +12,7 @@ import Usage from "./pages/Usage";
 import Offre from "./pages/Offre";
 import Calendrier from "./pages/Calendrier";
 import Profil from "./pages/Profil";
+import Auth from "./pages/Auth";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/offre" element={<Offre />} />
           <Route path="/calendrier" element={<Calendrier />} />
           <Route path="/profil" element={<Profil />} />
+          <Route path="/auth" element={<Auth />} />
         </Routes>
       </main>
       {showFooter && <Footer />}

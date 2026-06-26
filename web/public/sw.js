@@ -1,5 +1,5 @@
 // Service worker KOOBO coquille installable + cache des dernières pages visitées.
-const CACHE = "koobo-v1";
+const CACHE = "koobo-v2";
 const SHELL = ["/", "/logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

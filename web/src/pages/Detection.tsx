@@ -145,6 +145,7 @@ export default function Detection() {
   // ---- analyse vidéo en continu (capture périodique) ----
   function startLive() {
     if (!camOn) return;
+    setError("");
     setLive(true);
     setLiveStatus("Analyse en cours…");
     const tick = async () => {
@@ -157,9 +158,10 @@ export default function Detection() {
           setResult(r);
           setLiveStatus("Dernière analyse : " + new Date().toLocaleTimeString("fr-FR"));
         } catch (e: any) {
-          // En cas d'erreur (quota saturé, etc.) on arrête la boucle pour ne pas
-          // consommer le quota inutilement.
-          setLiveStatus("⚠️ " + (e.message || "analyse interrompue"));
+          // En cas d'erreur (crédit IA épuisé, etc.) on arrête la boucle pour ne pas
+          // consommer le quota inutilement ; le message s'affiche dans l'encart d'erreur.
+          setError(e.message || "analyse interrompue");
+          setLiveStatus("");
           stopLive();
         }
       }
@@ -189,6 +191,9 @@ export default function Detection() {
       setFollowLoading(false);
     }
   }
+
+  // Une erreur d'analyse est-elle due à l'épuisement du crédit / quota IA ?
+  const isCreditError = (m: string) => /cr[ée]dit|quota|satur|free-models|insuffisan|insufficient|503/i.test(m || "");
 
   const cards = result
     ? [
@@ -357,7 +362,16 @@ export default function Detection() {
                 )}
               </>
             )}
-            {error && (mode === "upload" || mode === "offline") && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
+            {error && !((mode === "camera" || mode === "video") && !camOn) && (
+              <div className={`mt-4 rounded-2xl border p-4 text-center ${isCreditError(error) ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+                <p className={`font-semibold ${isCreditError(error) ? "text-amber-800" : "text-red-700"}`}>
+                  {isCreditError(error) ? t.detection.creditTitle : t.detection.errorTitle}
+                </p>
+                <p className={`mt-1 text-sm ${isCreditError(error) ? "text-amber-700" : "text-red-600"}`}>
+                  {isCreditError(error) ? t.detection.creditHint : error}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Colonne droite : résultats */}

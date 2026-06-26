@@ -47,7 +47,10 @@ export async function predictOffline(img: HTMLImageElement): Promise<OfflineResu
     const t = tf.browser
       .fromPixels(img)
       .resizeBilinear([IMG, IMG])
-      .toFloat() // 0-255 : le modèle (include_preprocessing) normalise lui-même
+      .toFloat()
+      .div(255) // [0,1] : le modèle Greenathon a été entraîné avec rescale=1/255.
+      // (Si tu remplaces par un modèle entraîné via koobo_offline.ipynb — MobileNetV3
+      //  include_preprocessing, qui attend du 0-255 — retire ce .div(255).)
       .expandDims(0);
     return _model.predict(t);
   });

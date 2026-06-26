@@ -105,9 +105,15 @@ print("✅ KOOBO prêt (init paresseuse de l'IA).")
 def _ai_error(e):
     """Transforme une exception LLM en message clair + code HTTP."""
     msg = str(e).lower()
-    if "429" in msg or "rate" in msg or "quota" in msg or "free-models-per-day" in msg:
-        return ("Service IA momentanément saturé (quota gratuit OpenRouter atteint pour aujourd'hui). "
-                "Réessayez plus tard, ou ajoutez des crédits sur openrouter.ai."), 503
+    # Quota / crédits épuisés : limite gratuite quotidienne (429, free-models-per-day)
+    # OU crédits payants à zéro (402, insufficient, payment required, balance…).
+    credit_markers = ("429", "rate", "quota", "free-models-per-day", "402",
+                      "insufficient", "payment required", "out of credit",
+                      "credit", "balance", "exceeded")
+    if any(k in msg for k in credit_markers):
+        return ("Crédit IA terminé : le quota du service IA gratuit est épuisé. "
+                "Réessayez plus tard, ajoutez des crédits sur openrouter.ai, "
+                "ou utilisez la détection hors-ligne."), 503
     if "401" in msg or "auth" in msg or "api key" in msg:
         return ("Clé OpenRouter manquante ou invalide. Vérifiez OPENROUTER_API_KEY.", 503)
     return ("Service IA temporairement indisponible. Réessayez plus tard.", 503)
@@ -215,15 +221,15 @@ def get_detect_response():
     lang_code = request.form.get('lang', 'fr')
     language_name = utils.get_language_name(lang_code)
 
-    pil_image = Image.open(request.files['image'].stream).convert('RGB')
-    image_b64 = utils.convert_to_base64(pil_image)
-
-    llm = _vision_llm()
-    message = HumanMessage(content=[
-        {"type": "text", "text": utils.disease_detection_prompt(language_name)},
-        {"type": "image_url", "image_url": {"url": image_b64}},
-    ])
     try:
+        pil_image = Image.open(request.files['image'].stream).convert('RGB')
+        image_b64 = utils.convert_to_base64(pil_image)
+
+        llm = _vision_llm()
+        message = HumanMessage(content=[
+            {"type": "text", "text": utils.disease_detection_prompt(language_name)},
+            {"type": "image_url", "image_url": {"url": image_b64}},
+        ])
         raw = llm.invoke([message]).content
     except Exception as e:
         print(f"Vision error: {e}")
@@ -259,15 +265,15 @@ def get_detect_chat():
     language_name = utils.get_language_name(lang_code)
     query = request.form.get('query', '')
 
-    pil_image = Image.open(request.files['image'].stream).convert('RGB')
-    image_b64 = utils.convert_to_base64(pil_image)
-
-    llm = _vision_llm()
-    message = HumanMessage(content=[
-        {"type": "text", "text": f"{query}\n\n(Réponds en {language_name}, de façon claire et pratique pour un agriculteur.)"},
-        {"type": "image_url", "image_url": {"url": image_b64}},
-    ])
     try:
+        pil_image = Image.open(request.files['image'].stream).convert('RGB')
+        image_b64 = utils.convert_to_base64(pil_image)
+
+        llm = _vision_llm()
+        message = HumanMessage(content=[
+            {"type": "text", "text": f"{query}\n\n(Réponds en {language_name}, de façon claire et pratique pour un agriculteur.)"},
+            {"type": "image_url", "image_url": {"url": image_b64}},
+        ])
         result = llm.invoke([message])
     except Exception as e:
         print(f"Vision chat error: {e}")
@@ -366,11 +372,25 @@ def api_crop_prediction():
 
     temperature, humidity = weather
     data = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
-    prediction = CROP_MODEL.predict(data)[0]
-    prediction_fr = CROP_TRANSLATIONS.get(prediction.lower(), prediction.capitalize())
+
+    # Top 3 cultures recommandées (via les probabilités du modèle).
+    try:
+        proba = CROP_MODEL.predict_proba(data)[0]
+        classes = CROP_MODEL.classes_
+        top_idx = np.argsort(proba)[::-1][:3]
+        top = [{
+            "crop": CROP_TRANSLATIONS.get(classes[i].lower(), classes[i].capitalize()),
+            "crop_raw": classes[i],
+            "score": round(float(proba[i]) * 100, 1),
+        } for i in top_idx]
+    except Exception:
+        # Repli si le modèle n'expose pas predict_proba.
+        pred = CROP_MODEL.predict(data)[0]
+        top = [{"crop": CROP_TRANSLATIONS.get(pred.lower(), pred.capitalize()), "crop_raw": pred, "score": 100.0}]
+
     return jsonify({
-        "prediction": prediction_fr,
-        "prediction_raw": prediction,
+        "top": top,
+        "prediction": top[0]["crop"],          # rétro-compatibilité
         "temperature": temperature,
         "humidity": humidity,
     })
@@ -471,6 +491,13 @@ def serve_spa(path):
         return jsonify({"error": "Frontend non buildé. Lancez 'npm run build' dans web/."}), 404
     if path and os.path.exists(os.path.join(SPA_DIR, path)):
         return send_from_directory(SPA_DIR, path)
+    # Fichier statique demandé mais introuvable (ex. ancien chunk hashé réclamé par
+    # un onglet resté ouvert après un redéploiement) → vrai 404, PAS index.html.
+    # Sinon un import dynamique reçoit du HTML au lieu de JS, d'où l'erreur
+    # « Failed to fetch dynamically imported module ». Les routes client du SPA
+    # (/chat, /detection, …) n'ont pas d'extension et reçoivent bien index.html.
+    if path.startswith("assets/") or os.path.splitext(path)[1]:
+        return jsonify({"error": "Not found", "path": path}), 404
     return send_from_directory(SPA_DIR, "index.html")
 
 

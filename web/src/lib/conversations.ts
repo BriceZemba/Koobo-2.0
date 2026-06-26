@@ -1,4 +1,10 @@
-import { supabase, hasSupabase } from "./supabase";
+import { supabase, hasSupabase, getUserId } from "./supabase";
+
+// Le cloud (Supabase) n'est utilisé que si configuré ET qu'un utilisateur est
+// connecté → chaque personne a ses propres conversations. Sinon : localStorage.
+function cloud() {
+  return hasSupabase && supabase && getUserId();
+}
 
 export interface Conversation {
   id: string;
@@ -58,24 +64,24 @@ const local = {
 
 // ----------------------- API unifiée -----------------------
 export async function listConversations(): Promise<Conversation[]> {
-  if (hasSupabase && supabase) {
-    const { data } = await supabase.from("conversations").select("*").order("created_at", { ascending: false });
+  if (cloud()) {
+    const { data } = await supabase!.from("conversations").select("*").order("created_at", { ascending: false });
     return data || [];
   }
   return local.list();
 }
 
 export async function createConversation(title: string): Promise<Conversation> {
-  if (hasSupabase && supabase) {
-    const { data, error } = await supabase.from("conversations").insert({ title }).select().single();
+  if (cloud()) {
+    const { data, error } = await supabase!.from("conversations").insert({ title, user_id: getUserId() }).select().single();
     if (!error && data) return data as Conversation;
   }
   return local.create(title);
 }
 
 export async function loadMessages(id: string): Promise<ChatMessage[]> {
-  if (hasSupabase && supabase) {
-    const { data } = await supabase
+  if (cloud()) {
+    const { data } = await supabase!
       .from("messages")
       .select("role, content")
       .eq("conversation_id", id)
@@ -86,25 +92,25 @@ export async function loadMessages(id: string): Promise<ChatMessage[]> {
 }
 
 export async function saveMessage(id: string, role: "user" | "bot", content: string): Promise<void> {
-  if (hasSupabase && supabase) {
-    await supabase.from("messages").insert({ conversation_id: id, role, content });
+  if (cloud()) {
+    await supabase!.from("messages").insert({ conversation_id: id, role, content });
     return;
   }
   local.addMessage(id, { role, content });
 }
 
 export async function renameConversation(id: string, title: string): Promise<void> {
-  if (hasSupabase && supabase) {
-    await supabase.from("conversations").update({ title }).eq("id", id);
+  if (cloud()) {
+    await supabase!.from("conversations").update({ title }).eq("id", id);
     return;
   }
   local.rename(id, title);
 }
 
 export async function deleteConversation(id: string): Promise<void> {
-  if (hasSupabase && supabase) {
-    await supabase.from("messages").delete().eq("conversation_id", id);
-    await supabase.from("conversations").delete().eq("id", id);
+  if (cloud()) {
+    await supabase!.from("messages").delete().eq("conversation_id", id);
+    await supabase!.from("conversations").delete().eq("id", id);
     return;
   }
   local.remove(id);

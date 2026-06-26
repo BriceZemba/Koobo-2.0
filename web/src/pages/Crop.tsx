@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sprout, Loader2, Thermometer, Droplets, MapPin, Wheat, Leaf } from "lucide-react";
+import { Loader2, Thermometer, Droplets, MapPin, Wheat, Leaf } from "lucide-react";
 import { recommendCrop } from "../lib/api";
 import type { CropResult } from "../lib/api";
 import CitySearch from "../components/CitySearch";
@@ -81,11 +81,19 @@ export default function Crop() {
           <div className="lg:col-span-2">
             {result ? (
               <div className="overflow-hidden rounded-3xl border border-leaf-100 shadow-card">
-                <div className="bg-gradient-to-br from-leaf-700 to-leaf-800 p-7 text-center text-white">
+                <div className="bg-gradient-to-br from-leaf-700 to-leaf-800 p-6 text-center text-white">
                   <p className="text-sm text-leaf-100">{t.crop.recommended}</p>
-                  <div className="mt-2 flex items-center justify-center gap-2"><Sprout className="h-8 w-8 text-lime-400" /><span className="font-display text-3xl font-extrabold capitalize text-white">{result.prediction}</span></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 bg-white p-6">
+                <div className="space-y-2.5 bg-white p-5">
+                  {result.top.map((c, i) => (
+                    <div key={c.crop_raw} className={`flex items-center gap-3 rounded-2xl p-3 ${i === 0 ? "bg-leaf-100" : "bg-leaf-50"}`}>
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-bold ${i === 0 ? "bg-leaf-700 text-white" : "bg-white text-leaf-700"}`}>{i + 1}</span>
+                      <span className="flex-1 font-semibold capitalize text-leaf-800">{c.crop}</span>
+                      <span className="rounded-full bg-white/70 px-2.5 py-1 text-xs font-bold text-leaf-700">{c.score}%</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3 border-t border-leaf-50 bg-white p-5">
                   <div className="rounded-2xl bg-leaf-50 p-4 text-center"><Thermometer className="mx-auto h-6 w-6 text-orange-500" /><div className="mt-2 text-xl font-bold text-leaf-800">{result.temperature}°C</div><div className="text-xs text-soil-400">{t.crop.temp}</div></div>
                   <div className="rounded-2xl bg-leaf-50 p-4 text-center"><Droplets className="mx-auto h-6 w-6 text-blue-500" /><div className="mt-2 text-xl font-bold text-leaf-800">{result.humidity}%</div><div className="text-xs text-soil-400">{t.crop.humidity}</div></div>
                 </div>

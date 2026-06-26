@@ -21,14 +21,6 @@ export default function Profil() {
     setSaved(true);
   }
 
-  const sliders: { k: keyof Profile; label: string; min: number; max: number; step?: number; unit?: string }[] = [
-    { k: "nitrogen", label: tr("Azote (N)", "Nitrogen (N)"), min: 0, max: 140, unit: "kg/ha" },
-    { k: "phosphorous", label: tr("Phosphore (P)", "Phosphorus (P)"), min: 0, max: 145, unit: "kg/ha" },
-    { k: "potassium", label: tr("Potassium (K)", "Potassium (K)"), min: 0, max: 205, unit: "kg/ha" },
-    { k: "ph", label: tr("pH du sol", "Soil pH"), min: 0, max: 14, step: 0.1 },
-    { k: "rainfall", label: tr("Pluviométrie", "Rainfall"), min: 0, max: 300, unit: "mm" },
-  ];
-
   return (
     <div className="min-h-screen bg-white pt-[4.5rem]">
       {/* En-tête dégradé */}
@@ -70,20 +62,6 @@ export default function Profil() {
             <label className="mb-1.5 block text-sm font-semibold text-leaf-800"><Sprout className="mr-1 inline h-4 w-4" /> {tr("Mes cultures", "My crops")}</label>
             <input value={p.crops} onChange={(e) => set("crops", e.target.value)} placeholder={tr("Ex. maïs, tomate, sorgho", "E.g. maize, tomato, sorghum")}
               className="w-full rounded-xl border border-leaf-200 bg-white px-4 py-2.5 text-soil-600 focus:border-leaf-400 focus:outline-none" />
-          </div>
-
-          <p className="mt-6 mb-2 text-sm font-semibold text-leaf-800">{tr("Caractéristiques de mon sol (par défaut)", "My soil characteristics (defaults)")}</p>
-          <div className="space-y-4">
-            {sliders.map((f) => (
-              <div key={f.k}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="text-soil-600">{f.label}</span>
-                  <span className="rounded-md bg-leaf-50 px-2 py-0.5 font-mono text-leaf-700">{p[f.k] as number} {f.unit}</span>
-                </div>
-                <input type="range" min={f.min} max={f.max} step={f.step || 1} value={p[f.k] as number}
-                  onChange={(e) => set(f.k, Number(e.target.value) as never)} className="w-full accent-leaf-700" />
-              </div>
-            ))}
           </div>
 
           <button onClick={submit} className="btn-primary mt-7 w-full">

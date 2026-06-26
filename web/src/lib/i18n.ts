@@ -2,7 +2,7 @@
 // La langue de CONVERSATION du chat (incl. langues africaines) est gérée séparément.
 
 export const fr = {
-  nav: { home: "Accueil", assistant: "Assistant", detection: "Détection", crops: "Cultures", weather: "Météo", usage: "Utilisation", offre: "Offre", calendrier: "Calendrier", profil: "Mon profil", talk: "Parler à Koobo" },
+  nav: { home: "Accueil", assistant: "Assistant", detection: "Détection", crops: "Cultures", weather: "Météo", usage: "Utilisation", offre: "Offre", calendrier: "Calendrier", profil: "Mon profil", tools: "Outils", login: "Se connecter", logout: "Se déconnecter", talk: "Parler à Koobo" },
   hero: {
     badge: "IA pour l'agriculture africaine",
     title: "Cultivez l'avenir avec",
@@ -82,6 +82,7 @@ export const fr = {
     activate: "Activer la caméra", live: "EN DIRECT", liveInfo: "Analyse une image toutes les ~20 s (la vision en continu consomme vite le quota IA gratuit).",
     cName: "Maladie identifiée", cCause: "Causes", cSymp: "Symptômes", cTreat: "Traitement",
     followTitle: "Une question de suivi ?", followSub: "Demandez plus de détails sur cette plante.", followPh: "Ex. Ce traitement est-il bio ?",
+    creditTitle: "Crédit IA terminé", creditHint: "Le quota du service IA gratuit est épuisé. Réessayez plus tard, ou utilisez l'onglet « Hors-ligne » (gratuit, sans internet).", errorTitle: "Échec de l'analyse",
   },
   crop: {
     tag: "Machine Learning", title: "Recommandation de cultures",
@@ -109,7 +110,7 @@ export const fr = {
 };
 
 export const en: typeof fr = {
-  nav: { home: "Home", assistant: "Assistant", detection: "Detection", crops: "Crops", weather: "Weather", usage: "How to use", offre: "Pricing", calendrier: "Calendar", profil: "My profile", talk: "Talk to Koobo" },
+  nav: { home: "Home", assistant: "Assistant", detection: "Detection", crops: "Crops", weather: "Weather", usage: "How to use", offre: "Pricing", calendrier: "Calendar", profil: "My profile", tools: "Tools", login: "Sign in", logout: "Sign out", talk: "Talk to Koobo" },
   hero: {
     badge: "AI for African agriculture",
     title: "Grow the future with",
@@ -189,6 +190,7 @@ export const en: typeof fr = {
     activate: "Enable camera", live: "LIVE", liveInfo: "Analyzes one frame every ~20 s (continuous vision quickly uses up the free AI quota).",
     cName: "Identified disease", cCause: "Causes", cSymp: "Symptoms", cTreat: "Treatment",
     followTitle: "A follow-up question?", followSub: "Ask for more details about this plant.", followPh: "E.g. Is this treatment organic?",
+    creditTitle: "AI credit used up", creditHint: "The free AI service quota is used up. Try again later, or use the \"Offline\" tab (free, no internet).", errorTitle: "Analysis failed",
   },
   crop: {
     tag: "Machine Learning", title: "Crop recommendation",

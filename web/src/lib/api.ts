@@ -81,7 +81,13 @@ export interface CropInput {
   city: string;
 }
 
+export interface CropItem {
+  crop: string;
+  crop_raw: string;
+  score: number; // %
+}
 export interface CropResult {
+  top: CropItem[];
   prediction: string;
   temperature: number;
   humidity: number;

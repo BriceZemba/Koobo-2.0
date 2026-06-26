@@ -10,3 +10,13 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const supabase = url && key ? createClient(url, key) : null;
 export const hasSupabase = !!supabase;
+
+// Identité de l'utilisateur connecté (mise à jour par AuthContext).
+let _userId: string | null = null;
+export function setUserId(id: string | null) {
+  _userId = id;
+}
+export function getUserId(): string | null {
+  return _userId;
+}
+
